@@ -1,5 +1,5 @@
 
-.idea/
+.idea/*
 .gitignore
 .idea/vcs.xml
 .idea/workspace.xml
