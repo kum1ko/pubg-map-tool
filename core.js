@@ -318,7 +318,7 @@
             that.renderAll();
             // TODO Performace Issue
             that.resizeCanvas("repaint")
-            that.measure_mode = false;
+            that.measure_mode  = false;
             that.measurePoints = [];
             // that.resizeCanvas("left")
             // that.resizeCanvas("top")
@@ -450,7 +450,7 @@
 
     pubgMap.prototype.resizeCanvas = function (direction, afterClear, afterRender) {
         var that = this;
-        document.querySelectorAll(".pubgm-map-canvas").forEach(function (value) {
+        this.querySelectorAllForEach(".pubgm-map-canvas", function (value) {
             // console.log(1);
             // if (direction === "size") {
             //     value.width  = document.documentElement.clientWidth;
@@ -483,6 +483,11 @@
         })
     }
 
+
+    pubgMap.prototype.querySelectorAllForEach = function (ele, callback) {
+        return Array.prototype.forEach.call(document.querySelectorAll(ele), callback);
+    }
+
     pubgMap.prototype.resetGrid       = function () {
 
         var that = this;
@@ -490,9 +495,10 @@
             this.insertMapGridWrap();
         }
 
-        document.querySelectorAll(".pubgm-map-grid-wrap").forEach(function (i, t) {
+        this.querySelectorAllForEach(".pubgm-map-grid-wrap", function (i, t) {
             parseInt(i.attributes["weight"].value) == that.currentWeight ? i.style.display = "block" : i.style.display = "none";
         })
+
 
         this.mapGrid.style.width  = this.currentMaxBlocks() * this.lt + 'px';
         this.mapGrid.style.height = this.currentMaxBlocks() * this.lt + 'px';
@@ -529,7 +535,7 @@
 
         // Reset canvas
 
-        document.querySelectorAll(".pubgm-map-canvas").forEach(function (value) {
+        this.querySelectorAllForEach(".pubgm-map-canvas", function (value) {
             value.parentNode.removeChild(value);
         })
 
@@ -688,7 +694,7 @@
         this.canvasContextCache["main"] && this.canvasContextCache["main"].clearRect(0, 0, document.documentElement.clientWidth, document.documentElement.clientHeight);
         this.draw_text_label();
         var that = this;
-        document.querySelectorAll("div[active=\"true\"]").forEach(function (value) {
+        this.querySelectorAllForEach("div[active=\"true\"]", function (value) {
             // console.log();
             that["draw_" + value.getAttribute("type")] && that["draw_" + value.getAttribute("type")]();
 
@@ -703,7 +709,7 @@
 // new instance
 if (/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
     alert("移动端请使用官方APP内置地图功能谢谢");
-} else if (!/Chrome|Firefox/i.test(navigator.userAgent) && false) {
+} else if (!/Chrome|Firefox/i.test(navigator.userAgent)) {
     alert("对不起，浏览器不受支持");
 } else {
     var pm = new pubgMap("#pubg-map-container", data);
