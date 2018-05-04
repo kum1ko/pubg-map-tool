@@ -34,6 +34,7 @@
         this.minWeight          = 1;
         this.data               = data;
         this.mapContainer       = document.querySelector(element);
+        this.imageCache         = {};
 
         this.fixRatio      = 0.9778;
         this.distx         = 8000;
@@ -484,10 +485,10 @@
             var mapCanvas        = canvas;
             var mapCanvasContext = mapCanvas.getContext('2d');
 
-            var areas     = this.data.layers[order];
-            var imgObj    = new Image();
-            imgObj.src    = areas.icon;
-            imgObj.onload = function () {
+            var areas = this.data.layers[order];
+
+
+            function drawIcon() {
 
                 for (var i = 0; i < areas.geojson.length; i++) {
 
@@ -497,7 +498,18 @@
                     mapCanvasContext.drawImage(this, x - 0.5 * this.width, y - this.height);
                 }
 
+                if (!that.imageCache[areas.id]) that.imageCache[areas.id] = this;
+
             }
+
+            if (this.imageCache[areas.id]) {
+                drawIcon.call(this.imageCache[areas.id]);
+            } else {
+                var imgObj    = new Image();
+                imgObj.src    = areas.icon;
+                imgObj.onload = drawIcon;
+            }
+
 
             return this;
         }
