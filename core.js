@@ -174,12 +174,14 @@
             // this.mapGrid.style.left =
         })
 
-        this.mapGrid.addEventListener("mouseup", function (evt) {
+        var endClick = function (evt) {
             posLeft = that.mapGrid.style.left;
             posTop  = that.mapGrid.style.top;
             act     = false;
-        })
+        }
+        this.mapGrid.addEventListener("mouseup", endClick);
 
+        this.mapGrid.addEventListener("mouseout", endClick);
 
         this.mapGrid.addEventListener("wheel", function (evt) {
 
