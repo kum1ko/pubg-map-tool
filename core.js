@@ -37,9 +37,11 @@
         this.imageCache         = {};
         this.canvasContextCache = {};
 
+        this.measure_mode  = false;
         this.fixRatio      = 0.9778;
         this.distx         = 8000;
         this.disty         = 8000;
+        this.measurePoints = [];
         this.markerStyle   = {
             font: "20px Microsoft Yahei",
             fillStyle: "white",
@@ -108,7 +110,83 @@
         var actY  = false;
         var moveX = 0;
         var moveY = 0;
+
+
+        function formatSeconds(value) {
+            var theTime  = parseInt(value);// 秒
+            var theTime1 = 0;// 分
+            var theTime2 = 0;// 小时
+            // alert(theTime);
+            if (theTime > 60) {
+                theTime1 = parseInt(theTime / 60);
+                theTime  = parseInt(theTime % 60);
+
+                // alert(theTime1+"-"+theTime);
+                // if(theTime1 > 60) {
+                //     theTime2 = parseInt(theTime1/60);
+                //     theTime1 = parseInt(theTime1%60);
+                // }
+            }
+            var result = "" + parseInt(theTime);
+            if (theTime < 10) result = "0" + theTime;
+            if (theTime1 > 0) {
+                result = "" + (theTime1 < 10 ? "0" + parseInt(theTime1) : parseInt(theTime1)) + ":" + result;
+            }
+            return result;
+        }
+
+        this.dist      = 0;
+        this.paintLine = function (isMove) {
+            // Draw measure points
+            var canvas    = that.canvasContextCache["main"];
+            // console.log(canvas);
+            var prevPoint = [0, 0];
+            for (var i = 0; i < that.measurePoints.length; i++) {
+                canvas.beginPath();
+                canvas.moveTo(that.measurePoints[i][0], that.measurePoints[i][1]);
+                canvas.lineTo(i == 0 ? that.measurePoints[i][0] : prevPoint[0], i == 0 ? that.measurePoints[i][1] : prevPoint[1]);
+                canvas.lineWidth   = 3;
+                // canvas.setLineDash([20, 20]);
+                canvas.strokeStyle = '#fff';
+                canvas.stroke();
+                canvas.closePath();
+
+                // Calculate pxcels
+                this.dist += (i == 0 || isMove) ? 0 : (Math.sqrt(Math.pow(that.measurePoints[i][0] - prevPoint[0], 2) + Math.pow(that.measurePoints[i][1] - prevPoint[1], 2)))
+
+                prevPoint[0] = that.measurePoints[i][0];
+                prevPoint[1] = that.measurePoints[i][1];
+            }
+
+            if (that.measurePoints.length > 1) {
+
+                // Calculate meter
+                var meter = Math.round(that.dist / (that.lt * that.currentMaxBlocks()) * that.distx);
+
+                that.drawTip(
+                    that.measurePoints[that.measurePoints.length - 1][0],
+                    that.measurePoints[that.measurePoints.length - 1][1],
+                    meter,
+                    formatSeconds(meter / that.data.run_speed_min),
+                    formatSeconds(meter / that.data.run_speed_max),
+                    formatSeconds(meter / that.data.drive_speed)
+                )
+
+            }
+        }
         this.mapGrid.addEventListener("mousedown", function (evt) {
+
+
+            // measure mode
+            if (that.measure_mode) {
+
+                that.resizeCanvas("repaint", null, function () {
+                    that.measurePoints.push([evt.clientX, evt.clientY]);
+                    that.dist = 0;
+                    that.paintLine();
+                })
+                return;
+            }
             act     = true;
             mousePx = evt.clientX
             mousePy = evt.clientY
@@ -118,6 +196,42 @@
 
         this.mapGrid.addEventListener("mousemove", function (evt) {
 
+            if (that.measure_mode) {
+
+                that.resizeCanvas("repaint", null, function () {
+
+                    that.paintLine(true);
+                    var canvas = that.canvasContextCache["main"];
+                    if (that.measurePoints.length > 0) {
+                        canvas.beginPath();
+                        canvas.strokeStyle = '#fff';
+                        canvas.stroke();
+                        canvas.moveTo(evt.clientX, evt.clientY);
+                        canvas.lineTo(that.measurePoints[that.measurePoints.length - 1][0], that.measurePoints[that.measurePoints.length - 1][1]);
+                        canvas.closePath();
+                        canvas.stroke();
+
+
+                        var tempDist = parseInt(that.dist) + (Math.sqrt(Math.pow(that.measurePoints[that.measurePoints.length - 1][0] - evt.clientX, 2) + Math.pow(that.measurePoints[that.measurePoints.length - 1][1] - evt.clientY, 2)))
+                        var meter    = Math.round(tempDist / (that.lt * that.currentMaxBlocks()) * that.distx);
+
+                        that.drawTip(
+                            evt.clientX,
+                            evt.clientY,
+                            meter,
+                            formatSeconds(meter / that.data.run_speed_min),
+                            formatSeconds(meter / that.data.run_speed_max),
+                            formatSeconds(meter / that.data.drive_speed)
+                        )
+
+                    }
+
+                })
+
+                evt.target.style.cursor = "crosshair";
+            } else {
+                if (getComputedStyle(evt.target).cursor !== "auto") evt.target.style.cursor = "auto";
+            }
             if (!act) return;
             moveX = evt.clientX;
             moveY = evt.clientY;
@@ -202,7 +316,10 @@
 
             that.resetGrid();
             that.renderAll();
+            // TODO Performace Issue
             that.resizeCanvas("repaint")
+            that.measure_mode = false;
+            that.measurePoints = [];
             // that.resizeCanvas("left")
             // that.resizeCanvas("top")
         })
@@ -230,26 +347,61 @@
             child.setAttribute("icon_active", value.icon_active);
             child.setAttribute("type", value.id);
             child.style.backgroundImage = "url(" + value.icon_active + ")"
+
+
+            var changeIconStyle = function (iconDomElement, mode) {
+
+
+                function icon_active() {
+                    iconDomElement.setAttribute("active", "true");
+                    iconDomElement.style.backgroundImage = "url(" + iconDomElement.getAttribute("icon_active") + ")";
+                    return true;
+                }
+
+                function icon_normal() {
+                    iconDomElement.setAttribute("active", "false");
+                    iconDomElement.style.backgroundImage = "url(" + iconDomElement.getAttribute("icon_normal") + ")";
+                    return false;
+                }
+
+                if (mode === "true") {
+                    // Active current layer
+                    return icon_active();
+                }
+
+                if (mode === "false") {
+                    // Deactive current layer
+                    return icon_normal();
+                }
+
+                if (iconDomElement.getAttribute("active") === "true") {
+                    return icon_normal();
+                }
+
+                if (iconDomElement.getAttribute("active") === "false") {
+                    return icon_active();
+                }
+            }
             child.addEventListener("click", function (evt) {
                 if ("measure_mode" === evt.target.getAttribute("type")) {
 
-                    alert("即将上线");
-                    return;
+                    that.measure_mode  = !that.measure_mode;
+                    that.measurePoints = [];
+                    // return;
                 }
 
-                var findCanvas = document.querySelector("canvas[layer-type=\"" + value.id + "\"]");
-                if (evt.target.getAttribute("active") === "false") {
-                    // Active current layer
 
+                if ("all" === evt.target.getAttribute("type")) {
 
-                    evt.target.setAttribute("active", "true");
-                    evt.target.style.backgroundImage = "url(" + evt.target.getAttribute("icon_active") + ")";
+                    var stat = evt.target.getAttribute("active") === "true" ? "false" : "true"
+
+                    document.querySelectorAll("div[active]").forEach(function (v) {
+                        // console.log();
+                        // console.log(v);
+                        changeIconStyle(v, stat);
+                    })
                 } else {
-                    // Deactive current layer
-
-
-                    evt.target.setAttribute("active", "false");
-                    evt.target.style.backgroundImage = "url(" + evt.target.getAttribute("icon_normal") + ")";
+                    changeIconStyle(evt.target);
                 }
                 that.renderAll();
             })
@@ -296,7 +448,7 @@
     }
 
 
-    pubgMap.prototype.resizeCanvas = function (direction) {
+    pubgMap.prototype.resizeCanvas = function (direction, afterClear, afterRender) {
         var that = this;
         document.querySelectorAll(".pubgm-map-canvas").forEach(function (value) {
             // console.log(1);
@@ -318,7 +470,10 @@
             value.width  = document.documentElement.clientWidth;
             value.height = document.documentElement.clientHeight;
 
+
+            afterClear && afterClear();
             that.renderAll();
+            afterRender && afterRender();
             // that["draw_" + value.getAttribute("layer-type")]();
             // translate(20px,20px)
             value.style["transform"] = "translate3d(" + -parseInt(that.mapGrid.style["left"]) + "px, " + -parseInt(that.mapGrid.style["top"]) + "px, 0)"
@@ -334,6 +489,7 @@
         if (!this.inArray(this.weightCache, this.currentWeight)) {
             this.insertMapGridWrap();
         }
+
         document.querySelectorAll(".pubgm-map-grid-wrap").forEach(function (i, t) {
             parseInt(i.attributes["weight"].value) == that.currentWeight ? i.style.display = "block" : i.style.display = "none";
         })
@@ -447,6 +603,7 @@
                 var color                  = this.colorRgb(areas.color);
                 mapCanvasContext.fillStyle = "rgba(" + color[0] + ", " + color[1] + ", " + color[2] + ", 0.25)";
                 mapCanvasContext.fill();
+                mapCanvasContext.closePath();
             }
 
             return this;
@@ -491,6 +648,30 @@
     }
 
 
+    pubgMap.prototype.drawTip = function (ponitX, pointY, meter, onFootTimeMin, onFootTimeMax, vehicleTime) {
+        var canvas = this.canvasContextCache["main"];
+        canvas.beginPath();
+        canvas.rect(ponitX + 5, pointY - 105, 200, 95);
+        canvas.lineWidth   = 2;
+        canvas.strokeStyle = "#000";
+        canvas.fillStyle   = "#fff";
+        canvas.fill();
+        canvas.stroke();
+
+        canvas.font      = "22px Microsoft Yahei"
+        canvas.fillStyle = "red";
+        canvas.lineWidth = 0;
+        canvas.textAlign = "left";
+        canvas.fillText(meter + "米", ponitX + 15, pointY - 75);
+
+        canvas.fillStyle = "#666";
+        canvas.font      = "16px Microsoft Yahei"
+        canvas.fillText("徒步耗时：" + onFootTimeMin + "-" + onFootTimeMax, ponitX + 15, pointY - 45);
+        canvas.fillText("载具耗时：" + vehicleTime, ponitX + 15, pointY - 25);
+
+        canvas.closePath();
+    }
+
     pubgMap.prototype.draw_high_loot_areas      = pubgMap.prototype.creatLootAreas(1);
     pubgMap.prototype.draw_mid_loot_areas       = pubgMap.prototype.creatLootAreas(2);
     // 固定车点
@@ -510,7 +691,10 @@
         document.querySelectorAll("div[active=\"true\"]").forEach(function (value) {
             // console.log();
             that["draw_" + value.getAttribute("type")] && that["draw_" + value.getAttribute("type")]();
+
+            // that.paintLine();
         })
+
         // return this.draw_high_loot_areas().draw_mid_loot_areas()
         // return this.draw_text_label();
     }
@@ -519,7 +703,8 @@
 // new instance
 if (/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
     alert("移动端请使用官方APP内置地图功能谢谢");
-
+} else if (!/Chrome|Firefox/i.test(navigator.userAgent) && false) {
+    alert("对不起，浏览器不受支持");
 } else {
     var pm = new pubgMap("#pubg-map-container", data);
     pm.resetGrid().renderAll();
