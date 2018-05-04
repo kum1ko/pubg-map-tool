@@ -226,30 +226,29 @@
             child.setAttribute("type", value.id);
             child.style.backgroundImage = "url(" + value.icon_active + ")"
             child.addEventListener("click", function (evt) {
-                if ("measure_mode" === evt.srcElement.getAttribute("type")) {
+                if ("measure_mode" === evt.target.getAttribute("type")) {
 
                     alert("即将上线");
                     return;
                 }
 
                 var findCanvas = document.querySelector("canvas[layer-type=\"" + value.id + "\"]");
-                if (evt.srcElement.getAttribute("active") === "false") {
+                if (evt.target.getAttribute("active") === "false") {
                     // Active current layer
 
                     that["draw_" + value.id] && that["draw_" + value.id]();
 
                     that.resizeCanvas("repaint")
-
-                    evt.srcElement.setAttribute("active", "true");
-                    evt.srcElement.style.backgroundImage = "url(" + evt.srcElement.getAttribute("icon_active") + ")";
+                    evt.target.setAttribute("active", "true");
+                    evt.target.style.backgroundImage = "url(" + evt.target.getAttribute("icon_active") + ")";
                 } else {
                     // Deactive current layer
 
                     if (findCanvas) {
                         findCanvas.parentNode.removeChild(findCanvas);
                     }
-                    evt.srcElement.setAttribute("active", "false");
-                    evt.srcElement.style.backgroundImage = "url(" + evt.srcElement.getAttribute("icon_normal") + ")";
+                    evt.target.setAttribute("active", "false");
+                    evt.target.style.backgroundImage = "url(" + evt.target.getAttribute("icon_normal") + ")";
                 }
             })
             document.querySelector(".pubg-control").appendChild(child);
