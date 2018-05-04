@@ -317,8 +317,10 @@
             value.height = document.documentElement.clientHeight;
 
             that["draw_" + value.getAttribute("layer-type")]();
-            value.style["left"] = -parseInt(that.mapGrid.style["left"]) + "px";
-            value.style["top"]  = -parseInt(that.mapGrid.style["top"]) + "px";
+            // translate(20px,20px)
+            value.style["transform"] = "translate3d(" + -parseInt(that.mapGrid.style["left"]) + "px, " + -parseInt(that.mapGrid.style["top"]) + "px, 0)"
+            // value.style["left"] = -parseInt(that.mapGrid.style["left"]) + "px";
+            // value.style["top"]  = -parseInt(that.mapGrid.style["top"]) + "px";
             // }
         })
     }
