@@ -166,6 +166,7 @@
             }
             if (actY) {
                 that.mapGrid.style.top = parseInt(posTop) + evt.clientY - mousePy + "px";
+                // console.log(that.mapGrid.style.top);
             }
 
             that.resizeCanvas("repaint")
@@ -240,20 +241,17 @@
                 if (evt.target.getAttribute("active") === "false") {
                     // Active current layer
 
-                    that["draw_" + value.id] && that["draw_" + value.id]();
 
-                    that.resizeCanvas("repaint")
                     evt.target.setAttribute("active", "true");
                     evt.target.style.backgroundImage = "url(" + evt.target.getAttribute("icon_active") + ")";
                 } else {
                     // Deactive current layer
 
-                    if (findCanvas) {
-                        findCanvas.parentNode.removeChild(findCanvas);
-                    }
+
                     evt.target.setAttribute("active", "false");
                     evt.target.style.backgroundImage = "url(" + evt.target.getAttribute("icon_normal") + ")";
                 }
+                that.renderAll();
             })
             document.querySelector(".pubg-control").appendChild(child);
         })
@@ -313,12 +311,15 @@
             //     console.log(value.style["left"]);
             // } else if (direction === "repaint") {
             // value.parentNode.removeChild(value);
-            value.width  = 0;
-            value.height = 0;
+
+            that.canvasContextCache["main"].clearRect(0, 0, document.documentElement.clientWidth, document.documentElement.clientHeight);
+            // value.width  = 0;
+            // value.height = 0;
             value.width  = document.documentElement.clientWidth;
             value.height = document.documentElement.clientHeight;
 
-            that["draw_" + value.getAttribute("layer-type")]();
+            that.renderAll();
+            // that["draw_" + value.getAttribute("layer-type")]();
             // translate(20px,20px)
             value.style["transform"] = "translate3d(" + -parseInt(that.mapGrid.style["left"]) + "px, " + -parseInt(that.mapGrid.style["top"]) + "px, 0)"
             // value.style["left"] = -parseInt(that.mapGrid.style["left"]) + "px";
@@ -382,19 +383,19 @@
 
 
         var canvas = "";
-        if (!document.querySelector("canvas[layer-type=\"text_label\"]")) {
+        if (!document.querySelector("canvas[layer-type=\"main\"]")) {
             canvas           = document.createElement("canvas");
             canvas.className = "pubgm-map-canvas";
-            canvas.setAttribute("layer-type", "text_label");
+            canvas.setAttribute("layer-type", "main");
             canvas.width  = document.documentElement.clientWidth;
             canvas.height = document.documentElement.clientHeight;
             this.mapGrid.appendChild(canvas);
 
-            canvas                                = document.querySelector("canvas[layer-type=\"text_label\"]");
-            this.canvasContextCache["text_label"] = canvas.getContext('2d');
+            canvas                          = document.querySelector("canvas[layer-type=\"main\"]");
+            this.canvasContextCache["main"] = canvas.getContext('2d');
         }
 
-        var mapCanvasContext = this.canvasContextCache["text_label"];
+        var mapCanvasContext = this.canvasContextCache["main"];
 
 
         // mapCanvas.width  = this.lt * this.currentMaxBlocks();
@@ -428,21 +429,7 @@
 
             var areas = this.data.layers[order];
 
-            var canvas = "";
-            if (!document.querySelector("canvas[layer-type=\"" + areas.id + "\"]")) {
-                canvas           = document.createElement("canvas");
-                canvas.className = "pubgm-map-canvas";
-                canvas.setAttribute("layer-type", areas.id);
-                canvas.width  = document.documentElement.clientWidth;
-                canvas.height = document.documentElement.clientHeight;
-                this.mapGrid.appendChild(canvas);
-                canvas                            = document.querySelector("canvas[layer-type=\"" + areas.id + "\"]");
-                this.canvasContextCache[areas.id] = canvas.getContext('2d');
-            }
-
-
-            var mapCanvasContext = this.canvasContextCache[areas.id];
-
+            var mapCanvasContext = this.canvasContextCache["main"];
             for (var i = 0; i < areas.geojson.length; i++) {
                 //                            console.log(this.mapGrid.style.left);
                 var x      = areas.geojson[i].x * this.lt * this.currentMaxBlocks() / this.distx * this.fixRatio + parseInt(this.mapGrid.style.left);
@@ -471,25 +458,10 @@
 
         return function () {
 
-            var areas = this.data.layers[order];
 
-            var canvas = "";
-            if (!document.querySelector("canvas[layer-type=\"" + areas.id + "\"]")) {
-                canvas           = document.createElement("canvas");
-                canvas.className = "pubgm-map-canvas";
-                canvas.setAttribute("layer-type", areas.id);
-                canvas.width  = document.documentElement.clientWidth;
-                canvas.height = document.documentElement.clientHeight;
-                this.mapGrid.appendChild(canvas);
-                canvas                            = document.querySelector("canvas[layer-type=\"" + areas.id + "\"]");
-                this.canvasContextCache[areas.id] = canvas.getContext('2d');
-            }
-
+            var mapCanvasContext = this.canvasContextCache["main"];
+            var areas            = this.data.layers[order];
             var that             = this;
-            var mapCanvasContext = this.canvasContextCache[areas.id];
-
-            var areas = this.data.layers[order];
-
 
             function drawIcon() {
 
@@ -531,6 +503,8 @@
     pubgMap.prototype.draw_high_gun_loot        = pubgMap.prototype.creatPoints(6);
 
     pubgMap.prototype.renderAll = function () {
+
+        this.canvasContextCache["main"] && this.canvasContextCache["main"].clearRect(0, 0, document.documentElement.clientWidth, document.documentElement.clientHeight);
         this.draw_text_label();
         var that = this;
         document.querySelectorAll("div[active=\"true\"]").forEach(function (value) {
