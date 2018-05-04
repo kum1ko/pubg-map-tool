@@ -35,6 +35,7 @@
         this.data               = data;
         this.mapContainer       = document.querySelector(element);
         this.imageCache         = {};
+        this.canvasContextCache = {};
 
         this.fixRatio      = 0.9778;
         this.distx         = 8000;
@@ -384,17 +385,17 @@
             canvas.width  = document.documentElement.clientWidth;
             canvas.height = document.documentElement.clientHeight;
             this.mapGrid.appendChild(canvas);
-        } else {
-            canvas = document.querySelector("canvas[layer-type=\"text_label\"]");
+
+            canvas                                = document.querySelector("canvas[layer-type=\"text_label\"]");
+            this.canvasContextCache["text_label"] = canvas.getContext('2d');
         }
 
+        var mapCanvasContext = this.canvasContextCache["text_label"];
 
-        var mapCanvas = canvas;
 
         // mapCanvas.width  = this.lt * this.currentMaxBlocks();
         // mapCanvas.height = this.lt * this.currentMaxBlocks();
 
-        var mapCanvasContext         = mapCanvas.getContext('2d');
         mapCanvasContext.font        = this.markerStyle.font;
         mapCanvasContext.fillStyle   = this.markerStyle.fillStyle;
         mapCanvasContext.textAlign   = this.markerStyle.textAlign;
@@ -431,13 +432,12 @@
                 canvas.width  = document.documentElement.clientWidth;
                 canvas.height = document.documentElement.clientHeight;
                 this.mapGrid.appendChild(canvas);
-            } else {
-                canvas = document.querySelector("canvas[layer-type=\"" + areas.id + "\"]");
+                canvas                            = document.querySelector("canvas[layer-type=\"" + areas.id + "\"]");
+                this.canvasContextCache[areas.id] = canvas.getContext('2d');
             }
 
 
-            var mapCanvas        = canvas;
-            var mapCanvasContext = mapCanvas.getContext('2d');
+            var mapCanvasContext = this.canvasContextCache[areas.id];
 
             for (var i = 0; i < areas.geojson.length; i++) {
                 //                            console.log(this.mapGrid.style.left);
@@ -477,13 +477,12 @@
                 canvas.width  = document.documentElement.clientWidth;
                 canvas.height = document.documentElement.clientHeight;
                 this.mapGrid.appendChild(canvas);
-            } else {
-                canvas = document.querySelector("canvas[layer-type=\"" + areas.id + "\"]");
+                canvas                            = document.querySelector("canvas[layer-type=\"" + areas.id + "\"]");
+                this.canvasContextCache[areas.id] = canvas.getContext('2d');
             }
 
             var that             = this;
-            var mapCanvas        = canvas;
-            var mapCanvasContext = mapCanvas.getContext('2d');
+            var mapCanvasContext = this.canvasContextCache[areas.id];
 
             var areas = this.data.layers[order];
 
