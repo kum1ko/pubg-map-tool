@@ -7,6 +7,8 @@
 
         var that = this;
 
+        this.version = "1.1.0";
+
         if (!element) {
             var ctr = document.createElement("div");
             ctr.id  = "pubg-map-container";
@@ -15,7 +17,12 @@
         }
 
 
-        var style       = document.createElement("style");
+        var style     = document.createElement("style");
+        var locations = ["erangel", "miramar", "savage"]
+        this.location = window.location.hash.replace("#", "");
+
+        if (locations.indexOf(this.location) < 0) this.location = "erangel";
+
         style.innerText = "" +
             "* { padding: 0;margin: 0; border: 0;}" +
             element + " { position: relative; overflow: hidden;}" +
@@ -25,14 +32,14 @@
         document.getElementsByTagName("head")[0].appendChild(style);
 
         this.lt      = 256;
-        this.urlBase = "https://cdn.helper.qq.com/map/20004/erangel/";
+        this.urlBase = "https://cdn.helper.qq.com/map/20004/" + this.location + "/";
         // this.mapElementJson = "https://cdn.helper.qq.com/map/20004/erangel.json";
 
         this.localStorageSuffix = "SHIYUMI_PUBG_DATA_" || (namespace + "_");
         this.currentWeight      = 3;
         this.maxWeight          = 5;
         this.minWeight          = 1;
-        this.data               = data;
+        this.data               = data[this.location];
         this.mapContainer       = document.querySelector(element);
         this.imageCache         = {};
         this.canvasContextCache = {};
@@ -54,7 +61,20 @@
         this.centerXoffset = 0;
         this.centerYoffset = 0;
 
-
+        this.data.layers.map(function (i) {
+            if (i.id === "vehicle_spawns") {
+                i.id = "possible_car_spawns"
+                return
+            }
+            if (i.id === "boat_spawns") {
+                i.id = "possible_boat_spawns"
+                return
+            }
+            if (i.id === "high_weapon_loot") {
+                i.id = "high_gun_loot"
+                return
+            }
+        })
         this.mapGrid   = document.createElement("div");
         this.mapCanvas = document.createElement("canvas");
 
@@ -577,7 +597,7 @@
             mapCanvasContext.fillText(label, x, y);
         }
         mapCanvasContext.textAlign = "left";
-        mapCanvasContext.fillText("PLAYERUNKNOWN'S BATTLEGROUNDS MAP TOOL v1.0.0", 15, 40);
+        mapCanvasContext.fillText("PLAYERUNKNOWN'S BATTLEGROUNDS MAP TOOL v" + this.version + " <" + this.location.toUpperCase() + ">", 15, 40);
         mapCanvasContext.fillText("By Aria", 15, 65);
         return this;
     }
@@ -590,7 +610,7 @@
 
 
             var areas = this.data.layers[order];
-
+            console.log(areas);
             var mapCanvasContext = this.canvasContextCache["main"];
             for (var i = 0; i < areas.geojson.length; i++) {
                 //                            console.log(this.mapGrid.style.left);
@@ -619,12 +639,16 @@
 
     pubgMap.prototype.creatPoints = function (order) {
 
+
         return function () {
 
-
             var mapCanvasContext = this.canvasContextCache["main"];
-            var areas            = this.data.layers[order];
-            var that             = this;
+            var areas;
+            this.data.layers.forEach(function (item) {
+                if (item.id === order) areas = item;
+            })
+            if (!areas) throw new Error("order not defined!");
+            var that = this;
 
             function drawIcon() {
 
@@ -681,13 +705,13 @@
     pubgMap.prototype.draw_high_loot_areas      = pubgMap.prototype.creatLootAreas(1);
     pubgMap.prototype.draw_mid_loot_areas       = pubgMap.prototype.creatLootAreas(2);
     // 固定车点
-    pubgMap.prototype.draw_high_car_spawns      = pubgMap.prototype.creatPoints(3);
+    pubgMap.prototype.draw_high_car_spawns      = pubgMap.prototype.creatPoints("high_car_spawns");
     // 随机车点
-    pubgMap.prototype.draw_possible_car_spawns  = pubgMap.prototype.creatPoints(4);
+    pubgMap.prototype.draw_possible_car_spawns  = pubgMap.prototype.creatPoints("possible_car_spawns");
     // 随机船点
-    pubgMap.prototype.draw_possible_boat_spawns = pubgMap.prototype.creatPoints(5);
+    pubgMap.prototype.draw_possible_boat_spawns = pubgMap.prototype.creatPoints("possible_boat_spawns");
     // 高级枪械
-    pubgMap.prototype.draw_high_gun_loot        = pubgMap.prototype.creatPoints(6);
+    pubgMap.prototype.draw_high_gun_loot        = pubgMap.prototype.creatPoints("high_gun_loot");
 
     pubgMap.prototype.renderAll = function () {
 
@@ -696,7 +720,9 @@
         var that = this;
         this.querySelectorAllForEach("div[active=\"true\"]", function (value) {
             // console.log();
-            that["draw_" + value.getAttribute("type")] && that["draw_" + value.getAttribute("type")]();
+            var type = value.getAttribute("type");
+            // if (["vehicle_spawns"].indexOf(type) > -1) type = "possible_car_spawns";
+            that["draw_" + type] && that["draw_" + type]();
 
             // that.paintLine();
         })
